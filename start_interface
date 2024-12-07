@@ -1,1 +1,138 @@
 # shell_interface
+
+
+-powershell을 통해 WPF를 활용하여 GUI만들고
+4,5,7,9 실행을 넣기.
+
+4. 윈도우 이벤트 로그 분석 도구
+목표: 시스템의 이벤트 로그를 분석하고, 특정 오류나 경고 이벤트를 감지하여 관리자에게 보고하는 스크립트 작성.
+
+주요 단계:
+이벤트 로그 가져오기: Get-EventLog를 사용하여 시스템 이벤트 로그를 가져옵니다.
+
+예: 시스템 로그, 응용 프로그램 로그 등
+이벤트 필터링: 특정 이벤트 코드나 메시지를 기준으로 로그를 필터링합니다.
+
+예: 오류(Error)나 경고(Warning) 이벤트를 감지하여 출력.
+알림 기능 추가: 특정 이벤트가 발생하면, 이메일이나 윈도우 알림을 통해 관리자에게 알립니다.
+
+예: Send-MailMessage를 사용하여 이메일을 보내거나, New-BurntToastNotification을 사용하여 알림을 표시.
+로그 파일에 기록: 분석된 로그를 파일로 저장하고, 기록하는 기능을 추가합니다.
+
+예: Export-Csv를 사용하여 로그를 CSV 파일로 저장.
+예시 코드:
+powershell
+코드 복사
+# 시스템 이벤트 로그에서 오류 로그 가져오기
+$events = Get-EventLog -LogName System -EntryType Error -Newest 10
+
+# 오류 이벤트 출력
+$events | ForEach-Object {
+    Write-Host "Event ID: $($_.EventID) - Message: $($_.Message)"
+    
+    # 이메일로 오류 알림 보내기
+    Send-MailMessage -To "admin@example.com" -Subject "Error Log Alert" -Body $_.Message -SmtpServer "smtp.example.com"
+}
+
+# 로그를 파일로 저장
+$events | Export-Csv -Path "C:\Logs\error_logs.csv" -NoTypeInformation
+
+5. 정기적인 파일 정리 및 디스크 정리
+목표: 일정 주기로 불필요한 파일을 삭제하거나 정리하는 스크립트 작성.
+
+주요 단계:
+불필요한 파일 찾기: Get-ChildItem을 사용하여 특정 폴더 내의 오래된 파일이나 임시 파일을 찾습니다.
+
+예: .log, .bak 등의 확장자를 가진 파일을 찾거나, 최근 30일 이상 수정되지 않은 파일 찾기.
+파일 삭제: Remove-Item을 사용하여 불필요한 파일을 삭제합니다.
+
+예: 사용자가 선택한 폴더의 임시 파일 삭제.
+디스크 공간 최적화: 불필요한 파일을 삭제하고, 디스크 용량을 확보합니다.
+
+정기적인 실행: 이 스크립트를 Task Scheduler에 등록하여 일정 주기로 자동 실행되도록 설정합니다.
+
+예시 코드:
+powershell
+코드 복사
+# 특정 폴더에서 30일 이상된 파일 삭제
+$folderPath = "C:\Temp"
+$oldFiles = Get-ChildItem -Path $folderPath | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-30) }
+
+foreach ($file in $oldFiles) {
+    Remove-Item $file.FullName -Force
+    Write-Host "Deleted file: $($file.FullName)"
+}
+
+# 임시 파일 삭제 (예: .bak, .log 확장자)
+$bakFiles = Get-ChildItem -Path $folderPath -Filter "*.bak"
+$logFiles = Get-ChildItem -Path $folderPath -Filter "*.log"
+
+$bakFiles + $logFiles | ForEach-Object { Remove-Item $_.FullName -Force; Write-Host "Deleted file: $($_.FullName)" }
+
+7. 소프트웨어 설치 및 업데이트 자동화
+목표: 여러 대의 시스템에 특정 소프트웨어를 설치하거나 업데이트하는 스크립트 작성.
+
+주요 단계:
+소프트웨어 설치: choco(Chocolatey) 또는 winget을 사용하여 소프트웨어를 설치합니다.
+
+예: Chocolatey를 통해 특정 소프트웨어(예: Git, VLC)를 설치.
+소프트웨어 업데이트: 설치된 소프트웨어의 최신 버전을 자동으로 확인하고 업데이트합니다.
+
+예: choco upgrade 명령을 사용하여 업데이트.
+원격 시스템에 소프트웨어 배포: Invoke-Command를 사용하여 여러 대의 원격 시스템에 동시에 소프트웨어를 설치하거나 업데이트합니다.
+
+예시 코드:
+powershell
+코드 복사
+# Chocolatey로 Git 설치
+choco install git -y
+
+# Chocolatey로 소프트웨어 업데이트
+choco upgrade git -y
+
+# 원격 서버에 Git 설치
+Invoke-Command -ComputerName Server1 -ScriptBlock {
+    choco install git -y
+}
+
+# 여러 서버에 소프트웨어 설치
+$servers = @("Server1", "Server2", "Server3")
+foreach ($server in $servers) {
+    Invoke-Command -ComputerName $server -ScriptBlock {
+        choco install git -y
+    }
+}
+
+9. 리소스 집중적인 작업 모니터링 및 경고 시스템
+목표: 리소스를 많이 사용하는 작업을 모니터링하고, 작업이 과도하게 리소스를 소비하면 경고를 보내는 스크립트.
+
+주요 단계:
+리소스 사용량 모니터링: Get-Process를 사용하여 각 프로세스의 CPU 사용량과 메모리 사용량을 모니터링합니다.
+
+예: 특정 프로세스의 CPU 사용량이 90% 이상일 때 경고.
+알림 보내기: 리소스 사용량이 임계값을 초과하면 관리자에게 이메일로 알림을 보냅니다.
+
+주기적인 모니터링: 이 스크립트를 주기적으로 실행하도록 설정하여 실시간 모니터링 기능을 구현합니다.
+
+예시 코드:
+powershell
+코드 복사
+# 특정 프로세스 모니터링 (CPU 사용량이 90% 이상인 경우)
+$processes = Get-Process | Where-Object { $_.CPU -gt 90 }
+
+foreach ($process in $processes) {
+    Write-Host "High CPU usage detected: $($process.Name) - CPU: $($process.CPU)%"
+    
+    # 관리자에게 이메일 경고 보내기
+    Send-MailMessage -To "admin@example.com" -Subject "High CPU Usage Alert" -Body "$($process.Name) is using high CPU: $($process.CPU)%" -SmtpServer "smtp.example.com"
+}
+
+# 메모리 사용량이 90% 이상인 프로세스 감지
+$highMemoryProcesses = Get-Process | Where-Object { $_.WorkingSet -gt (5GB) }
+
+foreach ($process in $highMemoryProcesses) {
+    Write-Host "High memory usage detected: $($process.Name) - Memory: $($process.WorkingSet / 1GB) GB"
+    
+    # 이메일 알림 보내기
+    Send-MailMessage -To "admin@example.com" -Subject "High Memory Usage Alert" -Body "$($process.Name) is using high memory: $($process.WorkingSet / 1GB) GB" -SmtpServer "smtp.example.com"
+}
